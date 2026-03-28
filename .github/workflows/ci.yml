@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup MoonBit
+      uses: hustcer/setup-moonbit@v1
+      with:
+        version: latest
+
+    - name: Update MoonBit registry
+      run: moon update
+
+    - name: Verify MoonBit installation
+      run: moon version --all
+
+    - name: Build native binary
+      run: moon build cmd/cli --target native
+
+    - name: Run E2E tests
+      run: bash scripts/test-e2e.sh
+
+    - name: Upload binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: task-mbt-linux
+        path: _build/native/debug/build/cmd/cli/cli.exe
+        if-no-files-found: error
+
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup MoonBit
+      uses: hustcer/setup-moonbit@v1
+      with:
+        version: latest
+
+    - name: Update MoonBit registry
+      run: moon update
+
+    - name: Build native binary
+      run: moon build cmd/cli --target native
+
+    - name: Upload binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: task-mbt-macos
+        path: _build/native/debug/build/cmd/cli/cli.exe
+        if-no-files-found: error
+
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup MoonBit
+      uses: hustcer/setup-moonbit@v1
+      with:
+        version: latest
+
+    - name: Update MoonBit registry
+      run: moon update
+
+    - name: Build native binary
+      run: moon build cmd/cli --target native
+
+    - name: Upload binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: task-mbt-windows
+        path: _build/native/debug/build/cmd/cli/cli.exe
+        if-no-files-found: error
