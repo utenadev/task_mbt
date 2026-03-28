@@ -1,0 +1,27 @@
+version: "3"
+
+tasks:
+  hello:
+    desc: Say hello
+    cmd: echo "Hello from task_mbt!"
+
+  build:
+    desc: Build the project
+    cmd: echo "Building..."
+
+  test:
+    desc: Run tests
+    deps:
+      - build
+    cmd: echo "Testing..."
+
+  clean:
+    desc: Clean build artifacts
+    cmd: rm -rf ./build
+
+  all:
+    desc: Run all tasks
+    deps:
+      - clean
+      - build
+      - test

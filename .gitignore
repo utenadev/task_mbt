@@ -1,0 +1,10 @@
+.DS_Store
+_build/
+.mooncakes/
+.moonagent/
+*.exe
+*.dll
+*.so
+*.dylib
+gmn/
+go-task/

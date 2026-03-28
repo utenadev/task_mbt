@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__mcp-gemini-cli__chat",
+      "Read(//home/kench/workspace/beads_mbt/**)"
+    ]
+  },
+  "$version": 3
+}
