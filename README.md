@@ -1,37 +1,33 @@
-# task_mbt - MoonBit 版 Task Runner
+# task_mbt - MoonBit Task Runner
 
-Go で実装された [go-task/task](https://github.com/go-task/task) を MoonBit に移植したプロジェクトです。
+A MoonBit port of go-task/task
 
-## 概要
+## Overview
 
-task_mbt は、Make のようなタスクランナーを MoonBit で再実装したものです。YAML 形式の Taskfile を読み込み、定義されたタスクを実行します。
+task_mbt is a task runner implemented in MoonBit, ported from go-task/task. It reads YAML-format Taskfiles and executes defined tasks.
 
-**注意**: 現在開発中のプロジェクトです。機能は限定的です。
+## Installation
 
-## インストール
-
-### ソースからビルド
+### From Source
 
 ```bash
-# リポジトリのクローン
+# Clone the repository
 git clone https://github.com/utenadev/task_mbt.git
 cd task_mbt
 
-# ビルド
+# Build
 moon build cmd/cli --target native
-
-# バイナリは _build/native/debug/build/cmd/cli/cli.exe
 ```
 
-## 使い方
+## Usage
 
-### デモ実行
+### Demo Execution
 
 ```bash
 moon run cmd/cli
 ```
 
-### 出力例
+### Output Example
 
 ```
 🌙 task_mbt - Command Execution Demo
@@ -51,74 +47,74 @@ moon run cmd/cli
 🎉 All tasks completed!
 ```
 
-## プロジェクト構造
+## Project Structure
 
 ```
 task_mbt/
-├── task_mbt.mbt      # Executor コア
-├── types.mbt         # 型定義（Taskfile, Task, Cmd など）
-├── logger.mbt        # ロギング
-├── parser.mbt        # YAML パーサー
-├── cmd/cli/          # CLI デモ
-├── taskfile/ast/     # AST 型定義（開発中）
-├── internal/logger/  # ロギングパッケージ（開発中）
-└── TECH.md           # 技術ノート
+├── task_mbt.mbt      # Executor core
+├── types.mbt         # Type definitions (Taskfile, Task, Cmd etc.)
+├── logger.mbt        # Logging
+├── parser.mbt        # YAML parser
+├── cmd/cli/          # CLI demo
+├── taskfile/ast/     # AST type definitions (in development)
+├── internal/logger/  # Logging package (in development)
+└── TECH.md           # Technical notes
 ```
 
-## 実装状況
+## Implementation Status
 
-| 機能 | 状態 | 備考 |
-|------|------|------|
-| YAML パース | ✅ 完了 | moonbit-community/yaml 使用 |
-| Taskfile 読み込み | ✅ 完了 | |
-| タスク表示 | ✅ 完了 | |
-| **ユニットテスト** | ✅ 完了 | moon test/moon run 正常 |
-| コマンド実行 | ⏳ 調査中 | C FFI が必要 |
-| 依存関係解決 | ❌ 未着手 | |
-| 並列実行 | ❌ 未着手 | |
+| Feature | Status | Notes |
+|---------|--------|-------|
+| YAML Parsing | ✅ Complete | Using moonbit-community/yaml |
+| Taskfile Loading | ✅ Complete | |
+| Task Display | ✅ Complete | |
+| **Unit Tests** | ✅ **Pass** | `moon test`/`moon run` normal |
+| Command Execution | ⏳ FFI Under Investigation | C FFI not complete |
+| Dependency Resolution | ❌ Not Started | Topological sort needed |
+| Parallel Execution | ❌ Not Started | Concurrency model needed |
 
-## 技術スタック
+## Tech Stack
 
-- **言語**: MoonBit
-- **YAML パーサー**: moonbit-community/yaml
-- **ターゲット**: WebAssembly (wasm-gc), Native
+- **Language**: MoonBit
+- **YAML Parser**: moonbit-community/yaml
+- **Targets**: WebAssembly (wasm-gc), Native
 
-## 開発
+## Development
 
-### ビルド
+### Build
 
 ```bash
 moon build .
 moon build cmd/cli
 ```
 
-### テスト
+### Test
 
 ```bash
 moon test
 ```
 
-### フォーマット
+### Format
 
 ```bash
 moon fmt
 ```
 
-## 既知の問題
+## Known Issues
 
-1. **シェルコマンド実行**: MoonBit の FFI が未完成のため、コマンド実行はスタブ実装です。
-2. **クロスパッケージ型参照**: MoonBit の制限により、パッケージをフラットにしています。
+1. **Shell Command Execution**: MoonBit FFI not complete, command execution is stub implementation.
+2. **Cross-package Type Reference**: Due to MoonBit limitations, packages are flattened.
 
-## 参考文献
+## References
 
-- [go-task/task](https://github.com/go-task/task) - 元となった Go 実装
+- [go-task/task](https://github.com/go-task/task) - Original Go implementation
 - [MoonBit Documentation](https://docs.moonbitlang.com/)
 - [MoonBit for Go Programmers](https://docs.moonbitlang.com/en/latest/tutorial/for-go-programmers/index.html)
 
-## ライセンス
+## License
 
-MIT License - [LICENSE](LICENSE) を参照してください。
+MIT License - See [LICENSE](LICENSE) for details.
 
-## 貢献
+## Contributions
 
-Issue や Pull Request を歓迎します！
+Issues and Pull Requests are welcome!

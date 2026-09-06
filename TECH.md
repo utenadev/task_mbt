@@ -1,23 +1,23 @@
-# Task MBT - 技術ノート
+# Task MBT - Technical Notes
 
-## プロジェクト概要
+## Project Overview
 
-[go-task/task](https://github.com/go-task/task) の MoonBit への移植。
+Port of [go-task/task](https://github.com/go-task/task) to MoonBit.
 
-**go-task バージョン**: v3 (latest)
-**MoonBit バージョン**: Latest stable
+**go-task version**: v3 (latest)
+**MoonBit version**: Latest stable
 
-## アーキテクチャ比較
+## Architecture Comparison
 
-### Go 元の構造
+### Original Go Structure
 ```
 go-task/
-├── executor.go      # メインエグゼキューター
-├── task.go          # タスク実行
-├── setup.go         # 初期化
+├── executor.go      # Main executor
+├── task.go          # Task execution
+├── setup.go         # Initialization
 ├── taskfile/
-│   ├── reader.go    # Taskfile パース
-│   ├── node.go      # ファイル/HTTP/Git ノード
+│   ├── reader.go    # Taskfile parsing
+│   ├── node.go      # File/HTTP/Git nodes
 │   └── ast/
 │       ├── taskfile.go
 │       ├── task.go
@@ -28,31 +28,31 @@ go-task/
 │   ├── output/
 │   ├── execext/
 │   └── fingerprint/
-└── cmd/task/        # CLI エントリーポイント
+└── cmd/task/        # CLI entry point
 ```
 
-### MoonBit 移植版の構造
+### MoonBit Port Structure
 ```
 task_mbt/
-├── task_mbt.mbt          # エグゼキューターコア
+├── task_mbt.mbt          # Executor core
 ├── taskfile/
 │   └── ast/
-│       ├── task.mbt      # AST 型定義
-│       └── helpers.mbt   # コンストラクタ
+│       ├── task.mbt      # AST type definitions
+│       └── helpers.mbt   # Constructors
 ├── internal/
 │   └── logger/
-│       └── logger.mbt    # ロギング
+│       └── logger.mbt    # Logging
 └── cmd/task/
-    └── main.mbt          # CLI
+   └── main.mbt          # CLI
 ```
 
-## 技術的な知見
+## Technical Insights
 
-### 1. パッケージシステム
+### 1. Package System
 
-**Go**: `import "path/to/package"` を使用
+**Go**: `import "path/to/package"` to use
 
-**MoonBit**: `moon.pkg.json` でインポートを定義、`@alias` でアクセス
+**MoonBit**: Define imports in `moon.pkg.json`, access via `@alias`
 
 ```json
 {
@@ -63,39 +63,39 @@ task_mbt/
 ```
 
 ```moonbit
-// 使い方 - スラッシュではなくドット！
-@logger.info(logger, "message")      // ✅ 正
-@logger/info(logger, "message")      // ❌ 誤
+// Usage - not slash but dot!
+@logger.info(logger, "message")      // ✅ Correct
+@logger/info(logger, "message")      // ❌ Wrong
 ```
 
-### 1.5. 関数呼び出し構文
+### 1.5. Function Call Syntax
 
-MoonBit は**スペース区切り**の関数呼び出しで、引数はカッコ：
+MoonBit is **space-separated** function calls, arguments in parentheses:
 
 ```moonbit
-@yaml.Yaml::load_from_string(yaml_str)     // ✅ 正
-@yaml.Yaml::load_from_string yaml_str      // ❌ 誤（時々動く）
-@logger.new_logger(verbose, color)         // ✅ 正
+@yaml.Yaml::load_from_string(yaml_str)     // ✅ Correct
+@yaml.Yaml::load_from_string yaml_str      // ❌ Wrong (sometimes works)
+@logger.new_logger(verbose, color)         // ✅ Correct
 ```
 
-### 2. 型システムの違い
+### 2. Type System Differences
 
-#### Go 構造体
+#### Go Struct
 ```go
 type Task struct {
-    Name string
-    Cmds []*Cmd
+   Name string
+   Cmds []*Cmd
 }
 ```
 
-#### MoonBit 構造体
+#### MoonBit Struct
 ```moonbit
 struct Task {
   name: String
   cmds: Array[Cmd]
 }
 
-// 構築はフィールドをカンマ区切り
+// Construction is with comma-separated fields
 Task:: {
   name: "build",
   cmds: [],
@@ -103,82 +103,82 @@ Task:: {
 }
 ```
 
-**主な違い**:
-- MoonBit は `Array[T]` を使用（スライス `[]T` ではない）
-- 標準ライブラリに `List[T]` はない（`Array` を使用）
-- 構造体の関数型にはラッパー型が必要
-- 構造体フィールドでの**クロスパッケージ型参照はサポートされていない**
-- 構造体構築はフィールドを**カンマ**で区切る
+**Key differences**:
+- MoonBit uses `Array[T]` (not slice `[]T`)
+- Standard library has no `List[T]` (use `Array`)
+- Structure type functions need wrapper types
+- Cross-package type references in structure fields **not supported**
+- Structure construction with **comma**-separated fields
 
-### 2.5. ブロックスタイル
+### 2.5. Block Style
 
-MoonBit のコードは `///|` で区切られた**ブロック**で構成される：
+MoonBit code is composed of **blocks** separated by `///|`:
 
 ```moonbit
-///| 最初のブロック - 関数
+///| First block - function
 fn version() -> String {
   "0.1.0"
 }
 
 ///|
 
-///| 2 番目のブロック - 構造体
+///| Second block - structure
 struct Config {
   name: String
 }
 
 ///|
 
-///| 3 番目のブロック - メソッド
+///| Third block - method
 fn Config::get_name(self: Config) -> String {
   self.name
 }
 ```
 
-**重要**: 各ブロックには**1 つの定義**（関数、構造体、メソッドなど）を含める
+**Important**: Each block contains **one definition** (function, structure, method, etc.)
 
-### 3. クロスパッケージ型参照（制限事項）
+### 3. Cross-package Type References (Limitations)
 
-❌ **これは動かない**:
+❌ **This won't work**:
 ```moonbit
 struct Executor {
-  taskfile: Option[@taskfile/ast/Taskfile]  // エラー！
+  taskfile: Option[@taskfile/ast/Taskfile]  // Error!
 }
 ```
 
-✅ **回避策**:
-1. 同じパッケージで型を定義
-2. 型エイリアスを使用（制限あり）
-3. パッケージ構造をフラットにする
+✅ **Workarounds**:
+1. Define types in the same package
+2. Use type aliases (with limitations)
+3. Flatten package structure
 
-**推奨**: 現時点では関連する型を同じパッケージにまとめる
+**Recommendation**: For now, group related types in the same package
 
-### 4. 構文メモ
+### 4. Syntax Memo
 
-#### 定数
+#### Constants
 ```moonbit
-// 大文字名には `const` を使用
+// Use `const` for uppercase names
 pub const DEBUG : String = "DEBUG"
 
-// 小文字名には `let` を使用
+// Use `let` for lowercase names
 pub let debug = "debug"
 ```
 
-#### 構造体構築
+#### Structure Construction
 ```moonbit
-// すべてのフィールド
+// All fields
 Task:: {
   name: "build",
   cmds: [],
   desc: None
 }
 
-// ショートハンド（変数名がフィールド名と一致する場合）
+// Short hand (when variable name matches field name)
 let name = "build"
 Task:: { name, cmds: [], desc: None }
 ```
 
-#### パターンマッチ
+#### Pattern Matching
 ```moonbit
 match value {
   None => ()
@@ -187,134 +187,131 @@ match value {
 }
 ```
 
-#### 文字列連結
+#### String Concatenation
 ```moonbit
-// `++` ではなく `+` を使用
+// Use `+` not `++`
 let msg = "Hello" + " " + name
 ```
 
-#### 配列
+#### Arrays
 ```moonbit
-// 型注釈付き空配列
+// Type-annotated empty array
 let arr: Array[String] = []
 
-// 配列操作
+// Array operations
 Array::map(arr, fn(x) { x + "!" })
 Array::foldl(arr, init, fn(acc, x) { acc + x })
 ```
 
-### 5. 予約語
+### 5. Reserved Words
 
-フィールド名・関数名として使用しない：
-- `defer` → `defer_cmd` を使用
-- `method` → `method_name` を使用
-- `ref` → `ref_str` を使用
-- `use` → 将来の使用のために予約
-- `mut` → ミュータブルフィールド用
+Don't use as field or function names:
+- `defer` → `defer_cmd` to use
+- `method` → `method_name` to use
+- `ref` → `ref_str` to use
+- `use` → reserved for future use
+- `mut` → for mutable fields
 
-### 6. 標準ライブラリ
+### 6. Standard Library
 
-一般的な型と関数：
-- `Array[T]` - 動的配列
-- `Map[K, V]` - ハッシュマップ
-- `Option[T]` - オプション値（`Some` | `None`）
-- `Result[T, E]` - エラーハンドリング（`Ok` | `Err`）
-- `sys/get_args()` - コマンドライン引数
+Common types and functions:
+- `Array[T]` - Dynamic array
+- `Map[K, V]` - Hash map
+- `Option[T]` - Option value (`Some` | `None`)
+- `Result[T, E]` - Error handling (`Ok` | `Err`)
+- `sys/get_args()` - Command-line arguments
 - `println()` / `eprintln()` - I/O
 
-## 実装ステータス（2026/03/28 夜 第 3 回更新）
+## Implementation Status (2026/03/30 2nd update)
 
-| コンポーネント | 状態 | 備考 |
-|---------------|------|------|
-| AST 型定義 | ✅ 完了 | task_mbt パッケージに統合 |
-| Logger | ✅ 完了 | task_mbt パッケージに統合 |
-| **Executor** | ✅ **基本完了** | パッケージフラット化でビルド成功 |
-| CLI パーサー | ✅ 基本 | 引数解析動作 |
-| YAML パーサー | ✅ ライブラリ | `moonbit-community/yaml` 追加済み |
-| **YAML → AST** | ✅ **完了** | Taskfile パーサー実装済み |
-| **CLI デモ** | ✅ **完了** | Taskfile 読み込み→タスク表示→コマンド実行（スタブ） |
-| **E2E テスト** | ✅ **完了** | **go-task testdata を活用、85 件合格** |
-| **コマンド実行** | ⏳ **FFI 調査中** | C FFI が未完成、代替手段が必要 |
-| 依存関係解決 | ❌ 未着手 | トポロジカルソートが必要 |
-| フィンガープリンティング | ❌ 未着手 | 複雑なハッシュ処理が必要 |
-| 並列実行 | ❌ 未着手 | 並行モデルが必要 |
+| Component | Status | Notes |
+|-----------|--------|-------|
+| AST Type Definitions | ✅ Complete | Integrated into task_mbt package |
+| Logger | ✅ Complete | Integrated into task_mbt package |
+| Executor | ✅ **Basic Complete** | Build success with package flattening |
+| CLI Parser | ✅ Basic | Argument parsing works |
+| YAML Parser | ✅ Library | `moonbit-community/yaml` added |
+| **YAML → AST** | ✅ **Complete** | Taskfile parser implemented |
+| **CLI Demo** | ✅ **Complete** | Taskfile reading → task display → command execution (stub) |
+| **E2E Tests** | ✅ **Complete** | **85 tests passed using go-task testdata** |
+| **Unit Tests** | ✅ **Complete** | **`moon test`/`moon run` normal** |
+| **Command Execution** | ⏳ **FFI Under Investigation** | C FFI not complete, alternative needed |
+| Dependency Resolution | ❌ Not Started | Topological sort needed |
+| Fingerprinting | ❌ Not Started | Complex hash processing needed |
+| Parallel Execution | ❌ Not Started | Concurrency model needed |
 
----
+## Test Strategy
 
-## テスト戦略
+### E2E Tests (✅ Implemented)
 
-### E2E テスト（✅ 実装済み）
-
-go-task のテストフィクスチャをそのまま活用：
+Use go-task test fixtures directly:
 
 ```bash
-# 99 件のテストケースを実行
+# Run 99 test cases
 ./scripts/test-e2e.sh
 ```
 
-**結果**: 85 件合格 / 14 件スキップ / 0 件失敗 🎉
+**Result**: 85 passed / 14 skipped / 0 failures 🎉
 
-**テストフィクスチャの場所**:
+**Test fixture location**:
 ```
 testdata/
-├── deps/              # 依存関係テスト
-├── env/               # 環境変数テスト
-├── dry/               # ドライランテスト
-├── checksum/          # チェックサムテスト
-└── ... (99 ケース)
+├── deps/              # Dependency tests
+├── env/               # Environment variable tests
+├── dry/               # Dry run tests
+├── checksum/          # Checksum tests
+└── ... (99 cases)
 ```
 
-### 単体テスト（⚠️ 調査中）
+### Unit Tests (⚠️ Under Investigation)
 
-MoonBit のテスト構文は調査中：
-- `#[test]` 属性が認識されない
-- 代替構文が必要
+MoonBit test syntax is under investigation:
+- `#[test]` attribute not recognized
+- Alternative syntax needed
 
----
+## Key Discoveries (3rd session)
 
-## 本日の主な発見（その 3）
+### 1. MoonBit Package Structure Best Practices
 
-### 1. MoonBit パッケージ構造のベストプラクティス
-
-**問題**: クロスパッケージ型参照が機能しない
+**Problem**: Cross-package type references don't work
 ```moonbit
-// ❌ これが動かない
+// ❌ This doesn't work
 struct Executor {
   taskfile: Option[@taskfile/ast/Taskfile]
 }
 ```
 
-**解決策**: パッケージをフラットにする
+**Solution**: Flatten package structure
 ```moonbit
-// ✅ 1 つのパッケージにまとめる
+// ✅ Consolidate into one package
 // task_mbt.mbt, types.mbt, logger.mbt, parser.mbt
-// 全て同じパッケージ（utenadev/task_mbt）に配置
+// All in the same package (utenadev/task_mbt)
 
 struct Executor {
-  taskfile: Option[Taskfile]  // 同じパッケージなので直接参照可能
+  taskfile: Option[Taskfile]  // Directly accessible since same package
   logger: Logger
 }
 ```
 
-**ファイル構成**:
+**File structure**:
 ```
 task_mbt/
-├── task_mbt.mbt      # Executor, エグゼキューターロジック
-├── types.mbt         # Taskfile, Task, Cmd などの型定義
-├── logger.mbt        # Logger 実装
-├── parser.mbt        # YAML → Taskfile パーサー
+├── task_mbt.mbt      # Executor, executor logic
+├── types.mbt         # Taskfile, Task, Cmd etc. type definitions
+├── logger.mbt        # Logger implementation
+├── parser.mbt        # YAML → Taskfile parser
 └── moon.pkg.json     # import ["moonbit-community/yaml"]
 ```
 
-### 2. 構造体の不変性
+### 2. Structure Immutability
 
-MoonBit の構造体フィールドは**デフォルトで不変**：
+MoonBit structure fields are **immutable by default**:
 ```moonbit
-// ❌ これはエラー
+// ❌ This is an error
 let taskfile = new_taskfile()
-taskfile.version = Some(v)  // エラー：フィールドは不変
+taskfile.version = Some(v)  // Error: field is immutable
 
-// ✅ 新しいインスタンスを作成
+// ✅ Create new instance
 let taskfile = Taskfile:: {
   location: "",
   version: Some(v),
@@ -322,298 +319,223 @@ let taskfile = Taskfile:: {
 }
 ```
 
-### 3. for ループの構文
+### 3. `for` Loop Syntax
 ```moonbit
-// ✅ Map のイテレーション
+// ✅ Map iteration
 for entry in map {
   let (key, value) = entry
-  // 処理
+  // processing
 }
 
-// ✅ Array のイテレーション
+// ✅ Array iteration
 for item in array {
-  // 処理
+  // processing
 }
 ```
 
-### 4. 予約語 `method`
-`method` は MoonBit の予約語。フィールド名に使用しない：
+### 4. Reserved Word `method`
+`method` is a MoonBit reserved word. Don't use as field name:
 ```moonbit
-// ⚠️ 警告が出る
+// ⚠️ Warning appears
 struct Task {
-  method: Option[String]  // 警告：reserved keyword
+  method: Option[String]  // Warning: reserved keyword
 }
 
-// ✅ 回避策
+// ✅ Workaround
 struct Task {
   method_name: Option[String]  // OK
 }
 ```
 
-### 1. Gemini API の容量制限問題
-- **2026 年 3 月現在、Gemini CLI で 429 エラーが多発**
-- **モデル別容量不足**: `gemini-3-pro-preview` が特に深刻
-- **maxOutputTokens バグ**: gmn のデフォルト値 65536 が範囲外（最大 65535）
-- **OAuth クライアント制限**: 3/24 の変更で無料枠の優先度低下
+### 1. Gemini API Capacity Issue
+- **As of March 2026, Gemini CLI frequently shows 429 errors**
+- **Model-specific capacity shortage**: `gemini-3-pro-preview` especially severe
+- **maxOutputTokens bug**: gmn default 65536 is out of range (max 65535)
+- **OAuth client limit**: Free tier priority reduced with 3/24 change
 
-### 2. MoonBit のクロスパッケージ型参照（未解決）
-- **`import` 文**: ファイルパスではなくパッケージ名が必要
-- **`using` 文**: 構文エラー
-- **`@package/Type`**: 構造体フィールドでは使用不可
-- **回避策**: パッケージをフラットにする、または型エイリアス
+### 2. Cross-package Type Reference (Unresolved)
+- **Correct method**: `moon.pkg.json` import + `pub type` for exposure
+- **But still errors in structure fields**
+- **Workaround**: Flatten package structure, or use type aliases
 
-### 3. MoonBit FFI の現状
-- **`@ffi.c` 属性**: 実験的機能、構文が不安定
-- **C 型（Pointer, Int8）**: 未定義
-- **string/to_c_char_pointer**: 存在しない
-- **代替手段**: 必要になるまでスタブでOK
+### 3. MoonBit FFI Current State
+- **`@ffi.c` attribute**: Experimental, syntax unstable
+- **C types (Pointer, Int8)**: Undefined
+- **string/to_c_char_pointer**: Doesn't exist
+- **Alternative**: Keep as stub until needed
 
----
-
-## 本日の主な発見（Gemini 相談）
-
-### 1. シェルコマンド実行
-- **C FFI がデファクト** - `system()` または `popen()` を呼び出す
-- **実装例**:
-  ```moonbit
-  @FFI("c")
-  fn system(command: CString) -> Int
-  ```
-
-### 2. クロスパッケージ型参照（未解決）
-- **正しい方法**: `moon.pkg.json` で import + `pub type` で公開
-- **しかし構造体フィールドでは依然エラー**
-- **回避策**: パッケージをフラットにする
-
-### 3. プロジェクト構造
+### 3. Project Structure
 ```
-cmd/          # エントリーポイント
-pkg/          # 公開ライブラリ
-internal/     # 内部パッケージ
+cmd/          # Entry points
+pkg/          # Public libraries
+internal/     # Internal packages
 ```
 
-## 外部ライブラリ
+## Dependencies (from Go original)
 
-### YAML パーサー
-- **パッケージ**: `moonbit-community/yaml@0.0.4`
-- **元ネタ**: Deno std/yaml (js-yaml v3.13.1) をポート
-- **追加コマンド**: `moon add moonbit-community/yaml`
-- **状態**: `moon.mod.json` に追加済み、動作中
+Go dependencies to replace:
+- `go.yaml.in/yaml/v3` → `moonbit-community/yaml` ✅ Found
+- `mvdan.cc/sh/v3` → MoonBit shell integration needed
+- `github.com/zeebo/xxh3` → MoonBit hash library needed
+- `github.com/Masterminds/semver/v3` → MoonBit semver library needed
 
-**使い方**:
-```moonbit
-// YAML 文字列をパース
-let result = @yaml.Yaml::load_from_string(yaml_str) catch {
-  e => {
-    println("YAML パースエラー")
-    return
-  }
-}
+## Next Steps
 
-// 結果は Array[Yaml]
-match result {
-  [] => println("YAML ドキュメントなし")
-  [yaml, ..] => {
-    // yaml は Yaml 型
-    // 変異形：Map, Array, String, Integer, Boolean, Null, Real, BadValue
-    let dumped = @yaml.Yaml::dump(yaml)
-    println(dumped)
-  }
-}
-```
+### Near Term
+1. **Fix type references** - Flatten package structure or use type aliases
+2. **Add YAML parsing** - MoonBit YAML parser (complete)
+3. **Basic execution test** - Run simple Taskfile
 
-**Yaml 型の変異形**:
-- `Yaml::Map(Map[String, Yaml])` - YAML オブジェクト
-- `Yaml::Array(Array[Yaml])` - YAML 配列
-- `Yaml::String(String)` - YAML 文字列
-- `Yaml::Integer(Int64)` - YAML 整数
-- `Yaml::Boolean(Bool)` - YAML ブール値
-- `Yaml::Real(Double, repr~: String)` - YAML 浮動小数
-- `Yaml::Null` - YAML null
-- `Yaml::BadValue` - エラー値
+### Mid Term
+4. **Shell command execution** - Integrate with system shell
+5. **Variable expansion** - `{{.VAR}}` template engine
+6. **Dependency resolution** - Topological sort for task dependencies
 
-### コマンド実行（調査中）
+### Long Term
+7. **Fingerprinting** - Incremental build file hashing
+8. **Parallel execution** - Concurrent task execution
+9. **Watch mode** - File system monitoring
+10. **Remote Taskfiles** - HTTP/Git support
 
-MoonBit でシェルコマンドを実行する標準的な方法は現時点で明確ではない。
+## MoonBit Resources
 
-**候補**:
-1. **C FFI を使用** - `system()` 関数を呼び出す
-   - 参照：[A Guide to MoonBit C-FFI](https://www.moonbitlang.com/pearls/moonbit-cffi)
-   - 複雑、ネイティブコンパイルが必要
-
-2. **process パッケージ** - `moonbitlang/core/process`
-   - 存在しない可能性あり
-
-3. **外部スクリプトを呼び出す** - 間接的な方法
-
-**現状**: プロトタイプではスタブ実装まで
-
-
-## 依存関係（Go 元）
-
-置き換える必要がある Go 依存関係：
-- `go.yaml.in/yaml/v3` → `moonbit-community/yaml` ✅ 発見
-- `mvdan.cc/sh/v3` → MoonBit シェル統合が必要
-- `github.com/zeebo/xxh3` → MoonBit ハッシュライブラリが必要
-- `github.com/Masterminds/semver/v3` → MoonBit セムバーライブラリが必要
-
-## 次のステップ
-
-### 直近
-1. **型参照の修正** - パッケージ構造をフラット化または型エイリアスを使用
-2. **YAML パースの追加** - MoonBit 用 YAML パーサー（完了）
-3. **基本実行のテスト** - シンプルな Taskfile を実行
-
-### 中期的
-4. **シェルコマンド実行** - システムシェルと統合
-5. **変数展開** - `{{.VAR}}` 用テンプレートエンジン
-6. **依存関係解決** - タスク依存のトポロジカルソート
-
-### 長期的
-7. **フィンガープリンティング** - 増分ビルド用ファイルハッシュ
-8. **並列実行** - タスクの並行実行
-9. **ウォッチモード** - ファイルシステム監視
-10. **リモート Taskfiles** - HTTP/Git サポート
-
-## MoonBit リソース
-
-### 必須ドキュメント
+### Essential Documentation
 - **[MoonBit for Go Programmers](https://docs.moonbitlang.com/en/latest/tutorial/for-go-programmers/index.html)**
-  - Go から MoonBit への概念マッピング
-  - 慣用句とパターンの理解に役立つ
+  - Concept mapping from Go to MoonBit
+  - Helpful for understanding idioms and patterns
 
 - **[Language Fundamentals](https://docs.moonbitlang.com/en/latest/tutorial/fundamentals/index.html)**
-  - 構文とセマンティクスの核心
+  - Core syntax and semantics
 
-- **`.skills/` ディレクトリ** (MoonBit Agent Guide)
-  - `fundamentals.mbt.md` - 基本構文、構造体、パターンマッチ
-  - `methods.mbt.md` - メソッド定義と impl ブロック
-  - `packages.md` - パッケージシステムとインポート
-  - `derive.md` - 自動導出トレイト（Eq, Hash, JSON など）
-  - `attributes.md` - コンパイラディレクティブ
+- **`.skills/` directory** (MoonBit Agent Guide)
+  - `fundamentals.mbt.md` - Basic syntax, structures, pattern matching
+  - `methods.mbt.md` - Method definition and impl blocks
+  - `packages.md` - Package system and imports
+  - `derive.md` - Automatic derivation of Eq, Hash, JSON etc.
+  - `attributes.md` - Compiler directives
 
-これらのリソースにより、事前の経験なしに MoonBit コードを作成可能。
+These resources enable creating MoonBit code without prior experience.
 
-### パッケージレジストリ
-- **[mooncakes.io](https://mooncakes.io/)** - MoonBit パッケージレジストリ
-  - ライブラリ検索（YAML, JSON など）
-  - ドキュメントは少ないことが多い。ソースコードの探索が必要
+### Package Registry
+- **[mooncakes.io](https://mooncakes.io/)** - MoonBit package registry
+  - Library search (YAML, JSON etc.)
+  - Documentation often sparse; source code exploration needed
 
-## ビルドコマンド
+## Build Commands
 
 ```bash
-# CLI をビルド
+# Build CLI
 moon build cmd/task
 
-# CLI を実行
+# Run CLI
 moon run cmd/task --help
 
-# テストを実行
+# Run tests
 moon test
 
-# コードをフォーマット
+# Format code
 moon fmt
 
-# インターフェースを生成
+# Generate interface
 moon info
 ```
 
-## 既知の問題
+## Known Issues
 
-### 重大なブロッカー
+### Critical Blockers
 
-1. **クロスパッケージ型参照** (重要度：高)
-   - 構造体フィールドで他パッケージの型を参照できない
-   - エラー：`Expected upper case identifier for type name, found lower case identifier`
-   - 回避策：パッケージ構造をフラット化、または型をローカルで定義
-   - 影響：Go 元からのアーキテクチャ変更を余儀なくされる
+1. **Cross-package Type Reference** (High severity)
+   - Can't reference types from other packages in structure fields
+   - Error: `Expected upper case identifier for type name, found lower case identifier`
+   - Workaround: Flatten package structure, or define types locally
+   - Impact: Forced architecture changes from Go original
 
-2. **構造体の関数型** (重要度：中)
-   - 構造体フィールドで `(String) -> Unit` を直接使用できない
-   - 回避策：ラッパー型またはグローバル関数を使用
-   - 例：`struct Handler((String) -> Unit)` は動作する可能性あり
+2. **Structure Type Functions** (Medium severity)
+   - Can't directly use `(String) -> Unit` as structure field function type
+   - Workaround: Wrapper type or global function
+   - Example: `struct Handler((String) -> Unit)` might work
 
-3. **ブロックスタイルのパースエラー** (重要度：高)
-   - MoonBit は `///|` で区切られたブロックが必要
-   - 各ブロックには 1 つの定義を含める
-   - エラー：`Parse error, unexpected token '}', you may expect '.' id (uppercase start)`
-   - 原因：おそらく定義間に `///|` が不足
+3. **Block Style Parse Errors** (High severity)
+   - MoonBit requires blocks separated by `///|`
+   - Each block must contain one definition
+   - Error: `Parse error, unexpected token '}', you may expect '.' id (uppercase start)`
+   - Cause: Probably missing `///|` between definitions
 
-### 構文の落とし穴
+### Syntax Pitfalls
 
-4. **予約語** (重要度：低)
-   - `defer` → `defer_cmd` を使用
-   - `method` → `method_name` を使用
-   - `ref` → `ref_str` を使用
-   - `use` → 将来の使用のために予約
-   - `mut` → ミュータブルフィールド用
+4. **Reserved Words** (Low severity)
+   - `defer` → `defer_cmd` to use
+   - `method` → `method_name` to use
+   - `ref` → `ref_str` to use
+   - `use` → reserved for future use
+   - `mut` → for mutable fields
 
-5. **文字列連結** (重要度：低)
-   - `+` を使用、`++` は使用しない
-   - `++` は一部の文脈でリスト連結用
+5. **String Concatenation** (Low severity)
+   - Use `+`, not `++`
+   - `++` used for list concatenation in some contexts
 
-6. **Array vs List** (重要度：低)
-   - MoonBit は `Array[T]` を使用、`List[T]` は使用しない
-   - 空配列：型注釈に `[] as Array[String]`
+6. **Array vs List** (Low severity)
+   - MoonBit uses `Array[T]`, not `List[T]`
+   - Empty array: type annotation `[] as Array[String]`
 
-7. **パッケージ参照構文** (重要度：中)
-   - `@package.function` を使用、`@package/function` は使用しない
-   - 関数呼び出しにはカッコが必要：`@pkg.fn(arg)`、`@pkg.fn arg` は不可
+7. **Package Reference Syntax** (Medium severity)
+   - Use `@package.function`, not `@package/function`
+   - Function calls need parentheses: `@pkg.fn(arg)`, `@pkg.fn arg` is invalid
 
-### ツールの問題
+### Tool Issues
 
-8. **ドキュメントが不足** (重要度：中)
-   - mooncakes.io のパッケージドキュメントは空が多い
-   - `.mbti` インターフェースファイルを直接探索する必要がある
-   - GitHub のソースコードは古くなっている可能性
+8. **Documentation Scarcity** (Medium severity)
+   - mooncakes.io package documentation often empty
+   - Need to explore `.mbti` interface files directly
+   - GitHub source may be outdated
 
-9. **エラーメッセージ** (重要度：低)
-   - 一部のメッセージは分かりにくい
-   - "Partial type is not allowed" - 構造体定義
-   - "Missing_priv" - 内部型の警告
-   - "you may expect '.' id (uppercase start)" - しばしば誤解を招く
+9. **Error Messages** (Low severity)
+   - Some messages are unclear
+   - "Partial type is not allowed" - structure definition
+   - "Missing_priv" - internal type warning
+   - "you may expect '.' id (uppercase start)" - often misleading
 
-## 設計上の決定
+## Design Decisions
 
-### Array ではなく List？
-MoonBit の標準ライブラリは動的配列に `Array[T]` を使用。`List` は利用不可。
+### Why Array not List?
+MoonBit's standard library uses dynamic array `Array[T]`. `List` is unavailable.
 
-### Logger に関数型がないのはなぜ？
-MoonBit は構造体フィールドでの関数型を直接サポートしていない。代わりにグローバル `println` を使用。
+### Why no Function Type in Logger?
+MoonBit doesn't support function types directly in structure fields. Use global `println` instead.
 
-### パッケージ構造をフラットにするのはなぜ？
-クロスパッケージ型参照の問題を回避するため。MoonBit がサポートを追加したら再検討。
+### Why Flatten Package Structure?
+To avoid the cross-package type reference problem. Re-evaluate when MoonBit adds support.
 
-### 現在のアーキテクチャの選択
-**問題**: Go のモジュラーパッケージ構造は MoonBit に直接変換できない。
+### Current Architecture Choice
+**Problem**: Go's modular package structure doesn't directly map to MoonBit.
 
-**解決策**: フラットな構造から始め、MoonBit の改善後にリファクタリング：
-- AST 型とヘルパーを一緒に保つ
-- エグゼキューターと型を同じパッケージに保つ
-- 内部パッケージは真に独立したユーティリティ（logger など）にのみ使用
+**Solution**: Flat structure from start, refactor when MoonBit improves:
+- Keep AST types and helpers together
+- Keep executor and types in same package
+- Use internal packages only for true utilities (logger, etc.)
 
-## 現在のビルドステータス
+## Current Build Status
 
-**時点**: 最初の開発セッション
+**Point**: First development session
 
-**エラー**: ~70 エラー、~96 警告
-- 主な原因：構造体フィールドでのクロスパッケージ型参照
-- 副次的：errors/ パッケージの構文問題
+**Errors**: ~70 errors, ~96 warnings
+- Main cause: Cross-package type references in structure fields
+- Secondary: errors/ package syntax issues
 
-**動作中のコンポーネント**:
-- ✅ Logger パッケージ
-- ✅ AST 型定義（taskfile/ast/）
-- ✅ CLI 引数解析
-- ✅ YAML ライブラリ統合
+**Working Components**:
+- ✅ Logger package
+- ✅ AST type definitions (taskfile/ast/)
+- ✅ CLI argument parsing
+- ✅ YAML library integration
 
-**ブロックされているコンポーネント**:
-- ❌ エグゼキューター（型参照問題）
-- ❌ エラー型（構文問題）
-- ❌ YAML → AST 変換（API 不明）
+**Blocked Components**:
+- ❌ Executor (type reference issue)
+- ❌ Error type (syntax issue)
+- ❌ YAML → AST conversion (API unknown)
 
-## 参考文献
+## References
 
-- [go-task/task v3 ソース](https://github.com/go-task/task/tree/main)
-- [MoonBit ドキュメント](https://docs.moonbitlang.com/)
+- [go-task/task v3 Source](https://github.com/go-task/task/tree/main)
+- [MoonBit Documentation](https://docs.moonbitlang.com/)
 - [MoonBit Core Library](https://github.com/moonbitlang/core)
 - [mooncakes.io](https://mooncakes.io/)
